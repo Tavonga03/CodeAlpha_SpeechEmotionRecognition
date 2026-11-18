@@ -1,0 +1,7 @@
+librosa>=0.10
+tensorflow>=2.13
+keras>=3
+scikit-learn
+numpy
+matplotlib
+soundfile
