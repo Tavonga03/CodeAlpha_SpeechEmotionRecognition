@@ -52,6 +52,9 @@ python emotion_recognition.py --data_dir "path\to\data_speech" --epochs 60
 ### Step 8: Evaluate
 The script prints a classification report on the unseen test speakers and saves the model, `training_curves.png` and `confusion_matrix.png` to the `outputs/` folder.
 
+### Step 9: Try the model on single clips
+I used `predict.py` to classify individual recordings from `Actor_23`, one of the three test speakers the model never saw during training. I read the true emotion from each file name first, then compared it with the model's answer (see the demo table below).
+
 ---
 
 ## My results
@@ -75,6 +78,17 @@ The script prints a classification report on the unseen test speakers and saves 
 - **Strong overfitting:** training accuracy reached about 99.9% while validation accuracy stayed around 58-62%, and validation loss started rising after epoch 2. Early Stopping restored the best weights (from epoch 14), but the gap shows the model is memorising the training speakers.
 - **Small test set:** only 180 clips from 3 actors, and 12 neutral clips, so a few clips can shift the scores.
 - **Hard problem:** recognising emotion from unseen speakers is much harder than from speakers seen in training, and acted emotions in 8 classes overlap a lot.
+
+### Demo: predictions on clips from an unseen speaker (`Actor_23`)
+
+| File | True emotion | Model's answer | Confidence | Result |
+|------|--------------|----------------|------------|--------|
+| `03-01-08-01-01-01-23.wav` | surprised | surprised | 100.0% | correct |
+| `03-01-05-02-02-02-23.wav` | angry | angry | 100.0% | correct |
+| `03-01-07-01-01-01-23.wav` | disgust | disgust | 100.0% | correct |
+| `03-01-06-01-01-01-23.wav` | fearful | disgust | 62.4% | wrong (sad was second at 15.1%) |
+
+Three of these four clips were right, which fits the 61.1% overall accuracy and the per-class results: surprised and angry are the model's strongest classes, and fearful has recall of only 0.458. Four clips are just a demo and not a measure of accuracy, which comes from the 180-clip test set above. The model often gives 100% confidence, even when it can be wrong, which is a sign of the overfitting seen in the training curves.
 
 ![Training curves](outputs/training_curves.png)
 ![Confusion matrix](outputs/confusion_matrix.png)
