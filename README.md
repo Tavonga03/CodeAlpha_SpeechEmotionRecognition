@@ -1,129 +1,391 @@
-# CodeAlpha_SpeechEmotionRecognition
+# Speech Emotion Recognition Using Deep Learning
 
-My submission for **Task 2: Emotion Recognition from Speech** in the CodeAlpha Machine Learning Internship.
+## 1. Project Overview
 
-In this project I built a deep learning model that recognises 8 human emotions from speech audio. It extracts MFCC features from each recording and classifies them with a CNN + Bi-LSTM network.
+This project focuses on recognizing human emotions from speech audio using Deep Learning. It uses the **RAVDESS (Ryerson Audio-Visual Database of Emotional Speech and Song)** dataset to classify speech into eight different emotional categories.
 
----
+The project implements a **Convolutional Neural Network (CNN) combined with a Bidirectional Long Short-Term Memory (Bi-LSTM)** network.
 
-## What I did, step by step
+The CNN extracts important patterns from audio features, while the Bi-LSTM learns sequential information from the speech signal.
 
-### Step 1: Read the task
-The task asked me to recognise emotions such as happy, angry and sad from speech, using speech signal processing and deep learning. It suggested MFCC features, a CNN, RNN or LSTM model, and datasets such as RAVDESS, TESS or EMO-DB. I chose **RAVDESS** and a model that combines a CNN with an LSTM.
+This project was developed as part of the **CodeAlpha Machine Learning Internship**.
 
-### Step 2: Set up my environment
-- I created the project folder `CodeAlpha_SpeechEmotionRecognition`, as the internship instructions require.
-- I installed the libraries with `pip install -r requirements.txt` (librosa, TensorFlow, Keras, scikit-learn, NumPy, Matplotlib, soundfile).
-- My setup: Windows, Python 3.14, TensorFlow 2.22 (release candidate), librosa 1.0.1.
+## 2. Objectives
 
-### Step 3: Get the dataset (and fix two mistakes)
-RAVDESS is split into separate downloads for speech, song and video. Every file name encodes its labels, for example `03-01-06-01-02-01-12.wav`: the second number is the vocal channel (`01` speech, `02` song), the third number is the emotion, and the last number is the actor ID.
+The main objectives of this project are:
 
-- **Mistake 1, placeholder path:** my first run failed with `No .wav files found under path/to/RAVDESS`, because I had copied the example placeholder path instead of my real folder.
-- **Mistake 2, wrong download:** I first trained on `Audio_Song_Actors_01-24.zip` by accident. I noticed because my file names started with `03-02-` (song), the dataset had only 1,012 clips, and the model had only 6 emotion classes. The task is about speech, so I discarded that run, downloaded `Audio_Speech_Actors_01-24.zip`, and confirmed it had **1,440 files** with names starting `03-01-` before retraining.
+- Understand how audio data can be processed for Machine Learning.
+- Extract meaningful features from speech using MFCC.
+- Build a deep learning model for speech emotion classification.
+- Train and evaluate a CNN + Bi-LSTM model.
+- Test the model using audio recordings from speakers that were not included in training.
+- Analyze the model's performance and limitations.
 
-The final dataset is RAVDESS speech: 24 actors, 1,440 clips, 8 emotions (angry, calm, disgust, fearful, happy, neutral, sad, surprised).
+## 3. Dataset
 
-### Step 4: Pre-process the audio
-In `emotion_recognition.py` I:
-1. Load each clip at 22,050 Hz and trim leading and trailing silence.
-2. Pad or cut every clip to exactly 3 seconds, so all inputs have the same size.
-3. Extract **40 MFCCs plus their delta (change over time) values** for every frame, which gives an input of shape 130 frames x 80 features.
-4. Create **3 augmented copies** of each training clip (added noise, pitch shift, time stretch), so the model sees more variety.
+This project uses the **RAVDESS Speech Emotion Dataset**.
 
-### Step 5: Split the data by speaker
-I split the data by **actor**, not randomly: actors 1-18 for training, 19-21 for validation and 22-24 for testing. This means the model is tested on voices it has never heard, so the accuracy isn't inflated by the same speaker appearing in both train and test. The final sets were 4,320 training samples (with augmentation), 180 validation clips and 180 test clips. Features are normalised using statistics from the training set only.
+The speech dataset contains recordings from 24 professional actors. The original dataset contains 1,440 speech audio files.
 
-### Step 6: Build the model
-- Two Conv1D blocks (64 and 128 filters) with Batch Normalization and Max Pooling to pick up short-term sound patterns.
-- A Bi-LSTM layer (128 units each direction) to learn how the patterns change over time.
-- A Dense layer with Dropout, and a Softmax output with 8 units, one per emotion.
-- 364,616 parameters in total.
+The model recognizes eight emotional categories:
 
-### Step 7: Train
-- Optimizer: Adam (learning rate 0.001), loss: sparse categorical cross-entropy.
-- Early Stopping (patience 12) keeps the best weights, and Reduce LR on Plateau lowers the learning rate when progress stalls.
-- Training stopped at **epoch 26 of a maximum 60**, and each epoch took about 4 seconds on my CPU.
+| Label | Emotion |
+|---|---|
+| 1 | Neutral |
+| 2 | Calm |
+| 3 | Happy |
+| 4 | Sad |
+| 5 | Angry |
+| 6 | Fearful |
+| 7 | Disgust |
+| 8 | Surprised |
 
-```bash
-python emotion_recognition.py --data_dir "path\to\data_speech" --epochs 60
+The dataset is organized into actor folders, with each folder containing audio recordings from an individual actor.
+
+### Dataset Split
+
+To evaluate how well the model performs on speakers it has never seen during training, the dataset is divided by actor:
+
+- **Training:** Actors 01–18
+- **Validation:** Actors 19–21
+- **Testing:** Actors 22–24
+
+This speaker-independent split helps evaluate the model's ability to generalize to different speakers.
+
+## 4. Technologies and Libraries
+
+The project was developed using Python and the following libraries:
+
+| Technology | Purpose |
+|---|---|
+| Python | Main programming language |
+| TensorFlow | Deep Learning framework |
+| Keras | Building and training the neural network |
+| Librosa | Audio processing and feature extraction |
+| NumPy | Numerical operations |
+| Pandas | Data handling |
+| Scikit-learn | Data splitting and model evaluation |
+| Matplotlib | Visualization of training results |
+| SoundFile | Reading audio files |
+
+## 5. Project Structure
+
+```text
+CodeAlpha_SpeechEmotionRecognition/
+│
+├── data_speach/
+│   ├── Actor_01/
+│   ├── Actor_02/
+│   ├── ...
+│   └── Actor_24/
+│
+├── outputs/
+│   ├── emotion_model.keras
+│   ├── norm_stats.npz
+│   ├── training_curves.png
+│   └── confusion_matrix.png
+│
+├── emotion_recognition.py
+├── predict.py
+├── requirements.txt
+├── .gitignore
+└── README.md
 ```
 
-### Step 8: Evaluate
-The script prints a classification report on the unseen test speakers and saves the model, `training_curves.png` and `confusion_matrix.png` to the `outputs/` folder.
+Note: `data_speach` is the dataset folder name used in my local project. The dataset itself is not included in this GitHub repository.
 
-### Step 9: Try the model on single clips
-I used `predict.py` to classify individual recordings from `Actor_23`, one of the three test speakers the model never saw during training. I read the true emotion from each file name first, then compared it with the model's answer (see the demo table below).
+## 6. Audio Preprocessing and Feature Extraction
 
----
+Before training the model, the audio recordings are processed to make them suitable for deep learning.
 
-## My results
+The preprocessing steps include:
 
-**Test accuracy: 61.1%** (macro-F1 0.589) on 180 clips from 3 speakers the model never heard. Random guessing across 8 classes would give about 12.5%.
+1. **Audio Loading:** Load audio recordings using Librosa.
+2. **Resampling:** Convert audio to a sampling rate of 22,050 Hz.
+3. **Silence Removal:** Trim unnecessary silence from recordings.
+4. **Duration Adjustment:** Pad or cut audio to a fixed duration of 3 seconds.
+5. **MFCC Extraction:** Extract 40 Mel-Frequency Cepstral Coefficients (MFCCs).
+6. **Delta Features:** Calculate delta features to capture changes in audio characteristics over time.
+7. **Data Augmentation:** Apply noise addition, pitch shifting, and time stretching to increase training data.
+8. **Normalization:** Normalize the extracted features using statistics calculated from the training data.
 
-| Emotion | Precision | Recall | F1-score | Test clips |
-|---------|-----------|--------|----------|-----------|
-| angry     | 0.810 | 0.708 | 0.756 | 24 |
-| calm      | 0.773 | 0.708 | 0.739 | 24 |
-| disgust   | 0.583 | 0.583 | 0.583 | 24 |
-| fearful   | 0.688 | 0.458 | 0.550 | 24 |
-| happy     | 0.421 | 0.667 | 0.516 | 24 |
-| neutral   | 0.300 | 0.500 | 0.375 | 12 |
-| sad       | 0.556 | 0.208 | 0.303 | 24 |
-| surprised | 0.800 | 1.000 | 0.889 | 24 |
+The resulting feature representation has the shape:
 
-**What I noticed**
-- **Surprised, angry and calm are easiest** (F1 0.74-0.89). Surprised was found in every test clip.
-- **Sad is the hardest:** only about 21% of sad clips were recognised. Happy and neutral have low precision, which suggests other emotions were often labelled as happy or neutral. _I should check this in `confusion_matrix.png`._
-- **Strong overfitting:** training accuracy reached about 99.9% while validation accuracy stayed around 58-62%, and validation loss started rising after epoch 2. Early Stopping restored the best weights (from epoch 14), but the gap shows the model is memorising the training speakers.
-- **Small test set:** only 180 clips from 3 actors, and 12 neutral clips, so a few clips can shift the scores.
-- **Hard problem:** recognising emotion from unseen speakers is much harder than from speakers seen in training, and acted emotions in 8 classes overlap a lot.
+```text
+(130, 80)
+```
 
-### Demo: predictions on clips from an unseen speaker (`Actor_23`)
+This represents 130 time frames and 80 features per frame, combining MFCC and delta information.
 
-| File | True emotion | Model's answer | Confidence | Result |
-|------|--------------|----------------|------------|--------|
-| `03-01-08-01-01-01-23.wav` | surprised | surprised | 100.0% | correct |
-| `03-01-05-02-02-02-23.wav` | angry | angry | 100.0% | correct |
-| `03-01-07-01-01-01-23.wav` | disgust | disgust | 100.0% | correct |
-| `03-01-06-01-01-01-23.wav` | fearful | disgust | 62.4% | wrong (sad was second at 15.1%) |
+### Data Augmentation
 
-Three of these four clips were right, which fits the 61.1% overall accuracy and the per-class results: surprised and angry are the model's strongest classes, and fearful has recall of only 0.458. Four clips are just a demo and not a measure of accuracy, which comes from the 180-clip test set above. The model often gives 100% confidence, even when it can be wrong, which is a sign of the overfitting seen in the training curves.
+To increase the diversity of training data, three augmented versions are generated for each original training recording.
 
-![Training curves](outputs/training_curves.png)
-![Confusion matrix](outputs/confusion_matrix.png)
+The augmentation techniques include:
 
----
+- Adding background noise.
+- Pitch shifting.
+- Time stretching.
 
-## How to run my project
+After augmentation, the dataset contains:
+
+| Dataset | Number of Samples |
+|---|---:|
+| Training | 4,320 |
+| Validation | 180 |
+| Testing | 180 |
+| **Total** | **4,680** |
+
+The 1,440 original audio files produce 4,320 augmented training samples, while validation and test data remain separate.
+
+## 7. Model Architecture
+
+The project uses a hybrid CNN + Bi-LSTM architecture.
+
+### CNN Layers
+
+The CNN component extracts important patterns from the audio features.
+
+It consists of:
+
+- First Conv1D layer with 64 filters.
+- Batch Normalization.
+- Max Pooling.
+- Second Conv1D layer with 128 filters.
+- Batch Normalization.
+- Max Pooling.
+- Dropout.
+
+### Bidirectional LSTM
+
+The Bi-LSTM layer processes the extracted features in both forward and backward directions.
+
+This allows the model to learn information from different points in the audio sequence.
+
+### Dense and Output Layers
+
+The final layers include:
+
+- Dense layer with 128 neurons.
+- Dropout for regularization.
+- Softmax output layer with 8 neurons.
+
+Each output neuron represents one emotion category.
+
+### Model Summary
+
+| Component | Configuration |
+|---|---|
+| Input shape | (130, 80) |
+| First Conv1D | 64 filters |
+| Second Conv1D | 128 filters |
+| Recurrent layer | Bidirectional LSTM |
+| Dense layer | 128 neurons |
+| Output layer | 8 classes |
+| Total parameters | 364,616 |
+| Trainable parameters | 364,232 |
+
+## 8. Model Training
+
+The model was trained using the following configuration:
+
+| Parameter | Value |
+|---|---|
+| Optimizer | Adam |
+| Initial learning rate | 0.001 |
+| Loss function | Sparse Categorical Crossentropy |
+| Maximum epochs | 60 |
+| Early Stopping patience | 12 |
+| Learning rate adjustment | ReduceLROnPlateau |
+| Batch size | 32 |
+
+Early Stopping was used to stop training when validation performance stopped improving.
+
+The training process stopped at **epoch 26 out of 60**.
+
+## 9. Model Evaluation Results
+
+The trained model was evaluated using 180 test samples from speakers that were not included in the training or validation sets.
+
+### Overall Performance
+
+| Metric | Result |
+|---|---:|
+| Test Accuracy | **61.1%** |
+| Macro Precision | 61.6% |
+| Macro Recall | 60.4% |
+| Macro F1-score | **58.9%** |
+| Weighted F1-score | 60.3% |
+
+### Classification Report
+
+| Emotion | Precision | Recall | F1-score |
+|---|---:|---:|---:|
+| Angry | 0.810 | 0.708 | 0.756 |
+| Calm | 0.773 | 0.708 | 0.739 |
+| Disgust | 0.583 | 0.583 | 0.583 |
+| Fearful | 0.688 | 0.458 | 0.550 |
+| Happy | 0.421 | 0.667 | 0.516 |
+| Neutral | 0.300 | 0.500 | 0.375 |
+| Sad | 0.556 | 0.208 | 0.303 |
+| Surprised | 0.800 | 1.000 | 0.889 |
+
+### Training Curves
+
+The following figure shows the model's training and validation accuracy and loss over the training epochs.
+
+![Training Curves](outputs/training_curves.png)
+
+### Confusion Matrix
+
+The confusion matrix shows how the model classified each emotion and where misclassifications occurred.
+
+![Confusion Matrix](outputs/confusion_matrix.png)
+
+## 10. Discussion and Limitations
+
+The model achieved 61.1% test accuracy and a 58.9% macro F1-score.
+
+The best-performing emotion was **Surprised**, with an F1-score of 88.9%. Angry and Calm also achieved relatively good results.
+
+However, the model had difficulty recognizing Sad and Neutral emotions, with F1-scores of 30.3% and 37.5%, respectively.
+
+One important observation is the difference between training and validation performance.
+
+The training accuracy reached approximately 99.9%, while validation accuracy remained around 58–62%.
+
+This indicates **overfitting**. The model learned the training data very well but did not generalize equally well to unseen speakers.
+
+Possible improvements include:
+
+- Increasing regularization and dropout.
+- Reducing model complexity.
+- Using additional speech emotion datasets.
+- Experimenting with different audio features.
+- Testing other deep learning architectures.
+
+## 11. Prediction Example
+
+The project includes a prediction script that can classify emotions from individual audio files.
+
+Example command:
+
+```bash
+python predict.py "data_speach/Actor_23/03-01-08-01-01-01-23.wav"
+```
+
+Example predictions from Actor 23:
+
+| Audio File | Actual Emotion | Predicted Emotion |
+|---|---|---|
+| 03-01-08-01-01-01-23.wav | Surprised | Surprised |
+| 03-01-05-02-02-02-23.wav | Angry | Angry |
+| 03-01-07-01-01-01-23.wav | Disgust | Disgust |
+| 03-01-06-01-01-01-23.wav | Fearful | Disgust |
+
+These examples demonstrate how the trained model makes predictions on individual recordings. They are demonstration samples, not a replacement for the overall test evaluation.
+
+## 12. Installation and Usage
+
+### Step 1: Clone the Repository
 
 ```bash
 git clone https://github.com/Tavonga03/CodeAlpha_SpeechEmotionRecognition.git
-cd CodeAlpha_SpeechEmotionRecognition
-pip install -r requirements.txt
-python emotion_recognition.py --data_dir "path/to/data_speech" --epochs 60
-python predict.py "path/to/some_clip.wav"
 ```
 
-The RAVDESS audio is not included in this repo because of its size. Download `Audio_Speech_Actors_01-24.zip` from Zenodo (the **speech** file, not song) and point `--data_dir` at the extracted folder. `predict.py` needs the model that training saves in `outputs/`, so train first.
+### Step 2: Enter the Project Directory
 
-## Project files
+```bash
+cd CodeAlpha_SpeechEmotionRecognition
+```
 
-| File | Purpose |
-|------|---------|
-| `emotion_recognition.py` | Loads audio, extracts MFCCs, trains and evaluates the model |
-| `predict.py` | Predicts the emotion of one audio file |
-| `requirements.txt` | Python libraries needed |
-| `outputs/` | Saved model, plots and normalisation statistics (created after training) |
+### Step 3: Create a Virtual Environment
 
-## What I learned
-- What MFCC features are and why they are used to represent speech for machine learning.
-- How a CNN finds short sound patterns and an LSTM learns how they change over time.
-- Why splitting by speaker gives a more honest accuracy than a random split, and why the score is lower.
-- How to read a classification report and spot overfitting from the training curves.
-- How to check my data: reading file names caught that I had downloaded the song set instead of speech.
+```bash
+python -m venv .venv
+```
 
-## Ideas to improve it
-- Reduce overfitting with stronger dropout, a smaller model, and SpecAugment-style masking of the features.
-- Add more voices from TESS or EMO-DB, or fine-tune a pretrained speech model such as wav2vec 2.0.
-- Add mel-spectrogram or chroma features alongside the MFCCs.
+Activate it on Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+### Step 4: Install Dependencies
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+### Step 5: Prepare the Dataset
+
+Download the RAVDESS speech dataset and organize it into actor folders:
+
+```text
+data_speach/
+├── Actor_01/
+├── Actor_02/
+├── ...
+└── Actor_24/
+```
+
+### Step 6: Train the Model
+
+Run the following command:
+
+```bash
+python emotion_recognition.py --data_dir "data_speach" --epochs 60
+```
+
+The script extracts audio features, applies data augmentation, trains the CNN + Bi-LSTM model, evaluates the model, and saves the output files inside the `outputs/` directory.
+
+### Step 7: Predict an Emotion
+
+Use the prediction script with an audio file:
+
+```bash
+python predict.py "data_speach/Actor_23/03-01-08-01-01-01-23.wav"
+```
+
+## 13. Output Files
+
+After training, the following files are generated:
+
+| File | Description |
+|---|---|
+| `emotion_model.keras` | Trained CNN + Bi-LSTM model |
+| `norm_stats.npz` | Feature normalization statistics |
+| `training_curves.png` | Training and validation curves |
+| `confusion_matrix.png` | Confusion matrix visualization |
+
+## 14. Future Improvements
+
+There are several ways this project could be improved in the future:
+
+- Improve generalization to unseen speakers.
+- Experiment with stronger regularization techniques.
+- Combine MFCC with Mel Spectrogram or Chroma features.
+- Increase the amount of training data using additional datasets such as TESS or EMO-DB.
+- Explore advanced architectures such as CNN-BiLSTM with attention or pretrained speech models.
+
+## 15. Conclusion
+
+This project demonstrates how Deep Learning can be applied to speech emotion recognition using audio feature extraction and neural networks.
+
+By combining CNN and Bi-LSTM layers, the model can learn both acoustic patterns and sequential information from speech recordings.
+
+The final model achieved **61.1% test accuracy** and a **58.9% macro F1-score** on unseen speakers.
+
+Although the model shows promising results for some emotion categories, overfitting and differences in recognition performance between emotions remain important limitations.
+
+This project helped me understand audio preprocessing, MFCC feature extraction, data augmentation, neural network architecture, model training, and evaluation in a practical Machine Learning application.
+
+---
+
+## Author
+
+**Tavonga**
+
+Machine Learning Internship Project – CodeAlpha
+
+GitHub Repository: https://github.com/Tavonga03/CodeAlpha_SpeechEmotionRecognition
